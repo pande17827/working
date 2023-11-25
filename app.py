@@ -37,12 +37,22 @@ st.info(similarity_result["status"])
 st.write(f"Similarity File Path: {similarity_result['file_path']}")
 st.write(f"Similarity File Exists: {similarity_result['file_exists']}")
 
+# Check if the file exists and has a non-zero size before loading
+if os.path.exists(movies_result['file_path']) and os.path.getsize(movies_result['file_path']) > 0:
+    with open(movies_result['file_path'], 'rb') as f:
+        movies_dict = pickle.load(f)
+else:
+    st.error(f"Error: The file {movies_result['file_path']} is either empty or doesn't exist.")
+
 # Continue with the rest of your Streamlit app code...
 # Download and load movies_dic
-movies_dict = pickle.load(open(movies_result['file_path'], 'rb'))
 movies = pd.DataFrame(movies_dict)
 
-# Download and load similarity_pkl
-similarity = pickle.load(open(similarity_result['file_path'], 'rb'))
+# Check if the file exists and has a non-zero size before loading
+if os.path.exists(similarity_result['file_path']) and os.path.getsize(similarity_result['file_path']) > 0:
+    with open(similarity_result['file_path'], 'rb') as f:
+        similarity = pickle.load(f)
+else:
+    st.error(f"Error: The file {similarity_result['file_path']} is either empty or doesn't exist.")
 
 # Continue with the rest of your Streamlit app code...
