@@ -1,4 +1,4 @@
-!pip install gdown  # Add this line to install gdown
+pip install gdown  # Add this line to install gdown
 
 import streamlit as st
 import pickle
