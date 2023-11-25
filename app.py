@@ -1,74 +1,77 @@
-pip install -r requirements.txt
-pip install gdown
-
-
 import streamlit as st
 import pickle
 import pandas as pd
 import requests
 import os
-import tempfile
-import gdown 
+import gdown
+
+# Function to download and load Pickle file
 def download_and_load_pkl(file_id, file_name):
     file_url = f"https://drive.google.com/uc?id={file_id}"
-    
-    # Create a temporary directory
-    temp_dir = tempfile.gettempdir()
-    
-    # Use tempfile.NamedTemporaryFile to create a temporary file
-    with tempfile.NamedTemporaryFile(suffix=".pkl", dir=temp_dir, delete=False) as temp_file:
-        temp_file_path = temp_file.name
-    
+
     # Check if the file already exists locally
-    if not os.path.exists(temp_file_path) or os.path.getsize(temp_file_path) == 0:
+    if not os.path.exists(file_name):
         st.info(f"Downloading {file_name}...")
         with st.spinner('Downloading...'):
-            gdown.download(file_url, output=temp_file_path, quiet=False)
-            
-        # Check if the download was successful
-        if os.path.getsize(temp_file_path) == 0:
-            st.error(f"Error: The file {file_name} was not downloaded correctly.")
-            return {"status": "Error", "file_path": temp_file_path, "file_exists": False}
-        else:
-            st.success(f"Downloaded {file_name} successfully.")
-            return {"status": "Downloaded", "file_path": temp_file_path, "file_exists": True}
+            gdown.download(file_url, output=file_name, quiet=False)
     else:
         st.info(f"{file_name} already exists. Using the local file.")
-        return {"status": "Using local file", "file_path": temp_file_path, "file_exists": True}
 
-# Usage of the function outside
-movies_result = download_and_load_pkl("1lTLT6oVHcbBsacA43pc4VAsS932TjW0J", 'movies_dic.pkl')
-similarity_result = download_and_load_pkl("1sdRQptMMhYVyCJEDM3afS1V9B-qsSCm4", 'similarity_pkl.pkl')
+    with open(file_name, 'rb') as f:
+        return pickle.load(f)
 
-# Display information using Streamlit functions
-st.info(movies_result["status"])
-st.write(f"Movies File Path: {movies_result['file_path']}")
-st.write(f"Movies File Exists: {movies_result['file_exists']}")
-
-st.info(similarity_result["status"])
-st.write(f"Similarity File Path: {similarity_result['file_path']}")
-st.write(f"Similarity File Exists: {similarity_result['file_exists']}")
-
-# Check if the file exists and has a non-zero size before loading
-if os.path.exists(movies_result['file_path']) and os.path.getsize(movies_result['file_path']) > 0:
-    with open(movies_result['file_path'], 'rb') as f:
-        movies_dict = pickle.load(f)
-else:
-    st.error(f"Error: The file {movies_result['file_path']} is either empty or doesn't exist.")
-    # Provide a placeholder dataset
-    movies_dict = {"title": [], "genre": [], "release_date": []}
-
-# Continue with the rest of your Streamlit app code...
 # Download and load movies_dic
+movies_dict = download_and_load_pkl("1lTLT6oVHcbBsacA43pc4VAsS932TjW0J", 'movies_dic.pkl')
 movies = pd.DataFrame(movies_dict)
 
-# Check if the file exists and has a non-zero size before loading
-if os.path.exists(similarity_result['file_path']) and os.path.getsize(similarity_result['file_path']) > 0:
-    with open(similarity_result['file_path'], 'rb') as f:
-        similarity = pickle.load(f)
-else:
-    st.error(f"Error: The file {similarity_result['file_path']} is either empty or doesn't exist.")
-    # Provide a placeholder similarity matrix
-    similarity = pd.DataFrame()
+# Download and load similarity_pkl
+similarity = download_and_load_pkl("1sdRQptMMhYVyCJEDM3afS1V9B-qsSCm4", 'similarity_pkl.pkl')
 
-# Continue with the rest of your Streamlit app code...
+def fetch_poster(movie_id):
+    response = requests.get('http://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US'.format(movie_id))
+    data = response.json()
+    return "https://image.tmdb.org/t/p/w500" + data['poster_path']
+
+def recommend(movie):
+    movie_index = movies[movies['title'] == movie].index[0]
+    distance = similarity[movie_index]
+    movies_list = sorted(list(enumerate(distance)), reverse=True, key=lambda x: x[1])[1:6]
+
+    recommended_movies = []
+    recommended_movies_poster = []
+    for i in movies_list:
+        movie_id = movies.iloc[i[0]].movie_id
+        recommended_movies.append(movies.iloc[i[0]].title)
+        # fetch poster from api
+        recommended_movies_poster.append(fetch_poster(movie_id))
+    return recommended_movies, recommended_movies_poster
+
+st.title("Movie Recommendation System")
+
+selected_movie_name = st.selectbox(".", movies['title'].values)
+
+if st.button('Recommend'):
+    # fetch movies poster
+    names, poster = recommend(selected_movie_name)
+
+    coll, col2, col3, col4, col5 = st.columns(5)
+
+    with coll:
+        st.text(names[0])
+        st.image(poster[0])
+
+    with col2:
+        st.text(names[1])
+        st.image(poster[1])
+
+    with col3:
+        st.text(names[2])
+        st.image(poster[2])
+
+    with col4:
+        st.text(names[3])
+        st.image(poster[3])
+
+    with col5:
+        st.text(names[4])
+        st.image(poster[4])
