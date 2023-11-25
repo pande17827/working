@@ -1,4 +1,4 @@
-pip install gdown  # Add this line to install gdown
+pip install gdown 
 
 import streamlit as st
 import pickle
@@ -6,8 +6,7 @@ import pandas as pd
 import requests
 import os
 import tempfile
-import gdown  # Import gdown after installation
-
+import gdown 
 def download_and_load_pkl(file_id, file_name):
     file_url = f"https://drive.google.com/uc?id={file_id}"
     
